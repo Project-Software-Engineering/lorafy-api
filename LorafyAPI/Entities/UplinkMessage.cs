@@ -3,13 +3,13 @@ namespace LorafyAPI.Entities
 {
     public class UplinkMessagePayload
     {
-        public float Battery { get; set; }
-        public float BatteryVoltage { get; set; }
-        public float TemperatureInside { get; set; }
-        public float TemperatureOutside { get; set; }
-        public float Humidity { get; set; }
-        public float Light { get; set; }
-        public float Pressure { get; set; }
+        public float? Battery { get; set; }
+        public float? BatteryVoltage { get; set; }
+        public float? TemperatureInside { get; set; }
+        public float? TemperatureOutside { get; set; }
+        public float? Humidity { get; set; }
+        public float? Light { get; set; }
+        public float? Pressure { get; set; }
     }
 
     public class UplinkMessageDataRate

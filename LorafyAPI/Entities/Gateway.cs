@@ -3,9 +3,9 @@ namespace LorafyAPI.Entities
 {
     public class GatewayLocation
     {
-        public float Latitude { get; set; }
-        public float Longitude { get; set; }
-        public float Altitude { get; set; }
+        public float? Latitude { get; set; }
+        public float? Longitude { get; set; }
+        public float? Altitude { get; set; }
     }
 
     public class Gateway
@@ -17,5 +17,6 @@ namespace LorafyAPI.Entities
         public GatewayLocation Location { get; set; }
         public DateTime DateCreated { get; set; }
         public DateTime DateUpdated { get; set; }
+        public List<UplinkMessage> UplinkMessages { get; set; }
     }
 }

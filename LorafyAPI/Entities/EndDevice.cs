@@ -1,4 +1,5 @@
-﻿namespace LorafyAPI.Entities
+﻿
+namespace LorafyAPI.Entities
 {
     public class EndDevice
     {
@@ -7,5 +8,6 @@
         public string Address { get; set; }
         public DateTime DateCreated { get; set; }
         public DateTime DateUpdated { get; set; }
+        public List<UplinkMessage> UplinkMessages { get; set; }
     }
 }
