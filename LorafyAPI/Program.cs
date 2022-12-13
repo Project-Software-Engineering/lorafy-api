@@ -1,8 +1,16 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using AspNetCoreRateLimit;
+using LorafyAPI.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddDbContext<AppContext>(options =>
+{
+    var connectionString = _config.GetConnectionString("DatabaseConnectionString");
+    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
+});
+builder.Services.AddSingleton<EndDeviceService>();
 
 // Add services to the container.
 builder.Services.AddControllers();
