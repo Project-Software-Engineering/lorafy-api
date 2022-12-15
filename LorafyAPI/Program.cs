@@ -1,13 +1,20 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using AspNetCoreRateLimit;
+using LorafyAPI.Services;
+using LorafyAPI;
 
 
 var builder = WebApplication.CreateBuilder(args);
 
+var connectionString = builder.Configuration.GetConnectionString("DatabaseConnectionString");
+var serverVersion = ServerVersion.AutoDetect(connectionString);
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseMySql(connectionString, serverVersion));
+builder.Services.AddScoped<EndDeviceService>();
+
 // Add services to the container.
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 
 builder.Services.AddMemoryCache();
 builder.Services.AddHostedService<MQTTBackgroundService>();

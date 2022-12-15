@@ -1,5 +1,4 @@
-﻿using LorafyAPI.Entities;
-
+﻿
 namespace LorafyAPI.Models
 {
     public class EndDevice

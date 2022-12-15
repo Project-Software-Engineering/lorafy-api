@@ -1,25 +1,15 @@
 ﻿using LorafyAPI.Entities;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Hosting;
 
 namespace LorafyAPI
 {
-    public class AppContext : DbContext
+    public class AppDbContext : DbContext
     {
-        private readonly IConfiguration _config;
-
         public DbSet<EndDevice> EndDevices { get; set; }
         public DbSet<Gateway> Gateways { get; set; }
         public DbSet<UplinkMessage> UplinkMessages { get; set; }
 
-        public AppContext(IConfiguration config) =>
-            _config = config;
-
-        protected override void OnConfiguring(DbContextOptionsBuilder options)
-        {
-            var connectionString = _config.GetConnectionString("DatabaseConnectionString");
-            options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
-        }
+        public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
