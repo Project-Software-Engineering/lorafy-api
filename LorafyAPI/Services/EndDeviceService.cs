@@ -1,34 +1,48 @@
 ﻿using LorafyAPI.Models;
-using Microsoft.EntityFrameworkCore;
 
 namespace LorafyAPI.Services
 {
     public class EndDeviceService
     {
-        private readonly AppContext _context;
+        private readonly AppDbContext _context;
 
-        public EndDeviceService(AppContext context)
+        public EndDeviceService(AppDbContext context)
         {
             _context = context;
         }
 
+        /// <summary>
+        /// Gets all end devices with their corrosponding metadata.
+        /// The metadata is fetched from the latest uplink message of the corrosponding device.
+        /// </summary>
+        /// <returns>All EndDevice models from the database.</returns>
         public IEnumerable<EndDevice> GetEndDevices()
         {
-            var test = _context.EndDevices.ToList();
-            return Enumerable.Range(1, 5).Select(index => new EndDevice
-            {
-                EUI = "A84041C1818350AD",
-                Address = "260B6BA6",
-                Name = "lht-gronau",
-                DateCreated = DateTime.Now,
-                DateUpdated = DateTime.Now,
-                Metadata = new EndDeviceMetadata
+            // This query gets all end devices in the database and joins it with the most recent uplink messages for that end device.
+            // We then include the battery from that latest message.
+            var endDevicesQuery =
+                from endDevices in _context.EndDevices
+                join uplinkMessages in _context.UplinkMessages on endDevices.EUI equals uplinkMessages.EndDeviceEUI
+                let maxId = (
+                    from m in _context.UplinkMessages
+                    where m.EndDeviceEUI == endDevices.EUI
+                    select m.Id
+                ).Max()
+                where uplinkMessages.Id == maxId
+                select new EndDevice
                 {
-                    Battery = null,
-                    BatteryVoltage = 3.4f
-                }
-            })
-.ToArray();
+                    EUI = endDevices.EUI,
+                    Name = endDevices.Name,
+                    Address = endDevices.Address,
+                    DateCreated = endDevices.DateCreated,
+                    DateUpdated = endDevices.DateUpdated,
+                    Metadata = new EndDeviceMetadata {
+                        BatteryVoltage = uplinkMessages.Payload.BatteryVoltage,
+                        Battery = uplinkMessages.Payload.Battery
+                    }
+                };
+
+            return endDevicesQuery.ToList();
         }
     }
 }

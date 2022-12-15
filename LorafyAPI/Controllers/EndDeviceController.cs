@@ -15,7 +15,10 @@ namespace LorafyAPI.Controllers
             _service = service;
         }
 
-        // TODO: Remove: In The end, this should return a Model instead of an Entity. But this is fine for testing purposes.
+        /// <summary>
+        /// Gets all end devices.
+        /// </summary>
+        /// <returns>A list of all end devices currently in the database.</returns>
         [HttpGet]
         public IEnumerable<EndDevice> Get()
         {

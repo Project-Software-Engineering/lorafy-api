@@ -3,11 +3,13 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LorafyAPI
 {
-    public class AppContext : DbContext
+    public class AppDbContext : DbContext
     {
         public DbSet<EndDevice> EndDevices { get; set; }
         public DbSet<Gateway> Gateways { get; set; }
         public DbSet<UplinkMessage> UplinkMessages { get; set; }
+
+        public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
