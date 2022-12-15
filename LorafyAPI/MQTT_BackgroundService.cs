@@ -3,12 +3,13 @@ using System.Diagnostics;
 using System.Threading;
 using uPLibrary.Networking.M2Mqtt;
 using uPLibrary.Networking.M2Mqtt.Messages;
-public class MQTT_BackgroundService : BackgroundService
+
+public class MQTTBackgroundService : BackgroundService
 {
     private readonly IConfiguration? Configuration;
 
 
-    readonly ILogger<MQTT_BackgroundService> _logger;
+    readonly ILogger<MQTTBackgroundService> _logger;
     private MqttClient? client;
     private string broker;
     private int port = 1883;
@@ -26,7 +27,7 @@ public class MQTT_BackgroundService : BackgroundService
         Console.WriteLine(payload);
     }
 
-    public MQTT_BackgroundService(ILogger<MQTT_BackgroundService> logger, IConfiguration configuration)
+    public MQTTBackgroundService(ILogger<MQTTBackgroundService> logger, IConfiguration configuration)
     {
         _logger = logger;
         Configuration = configuration;
