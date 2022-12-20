@@ -1,4 +1,6 @@
-﻿using uPLibrary.Networking.M2Mqtt;
+﻿using LorafyAPI.Services;
+using System.Text.Json;
+using uPLibrary.Networking.M2Mqtt;
 using uPLibrary.Networking.M2Mqtt.Messages;
 
 public class MQTTBackgroundService : BackgroundService
@@ -6,17 +8,21 @@ public class MQTTBackgroundService : BackgroundService
     private readonly IConfiguration _configuration;
     private readonly ILogger<MQTTBackgroundService> _logger;
     private readonly MqttClient _client;
+    private string _json { get; set; }
+    JsonModelsParsingService _jsonModelsParsingService;
+    
 
-    static void client_MqttMsgPublishReceived(object sender, MqttMsgPublishEventArgs e)
+    void client_MqttMsgPublishReceived(object sender, MqttMsgPublishEventArgs e)
     {
-        var payload = System.Text.Encoding.Default.GetString(e.Message);
-        Console.WriteLine(payload); // TODO: Remove in the future
+        _json = System.Text.Encoding.Default.GetString(e.Message);
+        Console.WriteLine(_json);
     }
 
-    public MQTTBackgroundService(ILogger<MQTTBackgroundService> logger, IConfiguration configuration)
+    public MQTTBackgroundService(ILogger<MQTTBackgroundService> logger, IConfiguration configuration, JsonModelsParsingService jsonModelsParsingService)
     {
         _logger = logger;
         _configuration = configuration;
+       _jsonModelsParsingService= jsonModelsParsingService;
 
         var host = _configuration["MQTT:host"];
         var port = int.Parse(_configuration["MQTT:port"]);
@@ -31,7 +37,7 @@ public class MQTTBackgroundService : BackgroundService
         base.Dispose();
     }
 
-    public override Task StartAsync(CancellationToken cancellationToken)
+    public override async Task StartAsync(CancellationToken cancellationToken)
     {
         var clientId = Guid.NewGuid().ToString();
         var topic = _configuration["MQTT:topic"];
@@ -45,6 +51,7 @@ public class MQTTBackgroundService : BackgroundService
 
             _client.MqttMsgPublishReceived += client_MqttMsgPublishReceived;
             _client.Subscribe(new string[] { topic }, new byte[] { MqttMsgBase.QOS_LEVEL_AT_MOST_ONCE });
+            _jsonModelsParsingService.JsonToDatabase(_json);
         }
         else
         {
@@ -52,7 +59,7 @@ public class MQTTBackgroundService : BackgroundService
 
         }
 
-        return Task.CompletedTask;
+        
     }
 
     protected async override Task ExecuteAsync(CancellationToken stoppingToken)

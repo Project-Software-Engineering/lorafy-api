@@ -1,7 +1,8 @@
-﻿using LorafyAPI.Models;
+﻿using LazyCache;
+using LorafyAPI.Models;
 using LorafyAPI.Services;
 using Microsoft.AspNetCore.Mvc;
-
+using Microsoft.Extensions.Caching;
 namespace LorafyAPI.Controllers
 {
     [ApiController]
@@ -9,11 +10,14 @@ namespace LorafyAPI.Controllers
     public class EndDeviceController : ControllerBase
     {
         private readonly EndDeviceService _service;
+       
 
         public EndDeviceController(EndDeviceService service)
         {
             _service = service;
+            
         }
+
 
         /// <summary>
         /// Gets all end devices.

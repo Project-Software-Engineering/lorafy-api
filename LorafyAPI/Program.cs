@@ -12,8 +12,11 @@ var serverVersion = ServerVersion.AutoDetect(connectionString);
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseMySql(connectionString, serverVersion));
 builder.Services.AddScoped<EndDeviceService>();
+builder.Services.AddScoped<JsonModelsParsingService>();
+
 
 // Add services to the container.
+
 builder.Services.AddControllers();
 
 builder.Services.AddMemoryCache();
