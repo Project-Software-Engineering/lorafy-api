@@ -7,6 +7,8 @@ using LorafyAPI;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddCors();
+
 var connectionString = builder.Configuration.GetConnectionString("DatabaseConnectionString");
 var serverVersion = ServerVersion.AutoDetect(connectionString);
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -27,6 +29,7 @@ builder.Services.AddSingleton<IProcessingStrategy, AsyncKeyLockProcessingStrateg
 builder.Services.AddInMemoryRateLimiting();
 
 var app = builder.Build();
+app.UseCors(options => options.WithOrigins("*").AllowAnyMethod());
 app.UseIpRateLimiting();
 app.UseHttpsRedirection();
 app.UseAuthorization();
