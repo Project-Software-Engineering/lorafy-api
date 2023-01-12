@@ -7,6 +7,7 @@ using LorafyAPI;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Add services to the container
 var connectionString = builder.Configuration.GetConnectionString("DatabaseConnectionString");
 var serverVersion = ServerVersion.AutoDetect(connectionString);
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -14,12 +15,9 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddScoped<EndDeviceService>();
 builder.Services.AddScoped<JsonModelsParsingService>();
 
-// Add services to the container.
-
 builder.Services.AddControllers();
 builder.Services.AddMemoryCache();
 builder.Services.AddHostedService<MQTTBackgroundService>();
-builder.Services.AddHostedService<LopyMQTTService>();
 builder.Services.Configure<IpRateLimitOptions>(builder.Configuration.GetSection("IpRateLimiting"));
 builder.Services.AddSingleton<IIpPolicyStore, MemoryCacheIpPolicyStore>();
 builder.Services.AddSingleton<IRateLimitCounterStore, MemoryCacheRateLimitCounterStore>();

@@ -1,107 +1,108 @@
 ﻿using LorafyAPI.Entities;
 using LorafyAPI.Models.JSON;
 using Newtonsoft.Json;
+using System.Globalization;
 
 namespace LorafyAPI.Services
 {
     public class JsonModelsParsingService
     {
-
         private readonly AppDbContext _context;
 
         public JsonModelsParsingService(AppDbContext context) => _context = context;
-       
 
         public void JsonToDatabase(string _jsonString)
         {
             var model = JsonConvert.DeserializeObject<MQTTJsonMessage>(_jsonString);
             List<Gateway> gateways = new List<Gateway>();
 
-
-           foreach (var metadata in model.uplink_message.rx_metadata)
+            foreach (var metadata in model.uplink_message.rx_metadata)
+            {
+                // Some gateways may not have ids, so skip them.
+                if (metadata.gateway_ids == null)
                 {
-              
-                    var _gateway = new Gateway
+                    continue;
+                }
+
+                var gateway = new Gateway
+                {
+                    EUI = metadata.gateway_ids.eui,
+                    Name = metadata.gateway_ids.gateway_id,
+                    RSSI = metadata.rssi,
+                    SNR = metadata.snr,
+
+                    Location = new GatewayLocation
                     {
-                         EUI = metadata.gateway_ids.eui,
-                         Name = metadata.gateway_ids.gateway_id,
-                         RSSI = metadata.rssi,
-                         SNR = metadata.snr,
-                     
-                        Location = new GatewayLocation
-                        {
-                            Altitude = metadata.location.altitude,
-                            Latitude = metadata.location.latitude,
-                            Longitude = metadata.location.longitude
-                        }
-                    };
-                    gateways.Add(_gateway);
-               }            
+                        Altitude = metadata.location.altitude,
+                        Latitude = metadata.location.latitude,
+                        Longitude = metadata.location.longitude
+                    }
+                };
+                gateways.Add(gateway);
+            }
 
             var device = model.end_device_ids;
-            var _enddevice = new EndDevice
+            var endDevice = new EndDevice
             {
                 EUI = device.dev_eui,
                 Name = device.device_id,
                 Address = device.dev_addr
             };
 
-            var _payload = model.uplink_message.decoded_payload;
-            var _settings = model.uplink_message.settings.data_rate.lora;
-            var payload = new UplinkMessagePayload();
-         
-       
-            if (_payload.ContainsKey("Bat_status"))
-            {
-                payload.Battery = float.Parse(_payload["Bat_status"]);
-            }
-            if (_payload.ContainsKey("BatV"))
-            {
-                payload.BatteryVoltage = float.Parse(_payload["BatV"]);
-            }
-
-            if (_payload.ContainsKey("Hum_SHT"))
-            {
-                payload.Humidity = float.Parse(_payload["Hum_SHT"]);
-            }
-            if (_payload.ContainsKey("ILL_lx"))
-            {
-                payload.Light = float.Parse(_payload["ILL_lx"]);
-            }
-            if (_payload.ContainsKey("light"))
-            {
-                payload.Light = float.Parse(_payload["light"]);
-            }
-            if (_payload.ContainsKey("pressure"))
-            {
-                payload.Pressure = float.Parse(_payload["pressure"]);
-            }
-            if (_payload.ContainsKey("temperature"))
-            {
-                payload.TemperatureInside = float.Parse(_payload["temperature"]);
-            }
-            if (_payload.ContainsKey("TempC_DS") && _payload.ContainsKey("TempC_SHT"))
-            {
-                payload.TemperatureInside = float.Parse(_payload["TempC_SHT"]);
-                payload.TemperatureOutside = float.Parse(_payload["TempC_DS"]);
-            }
-            else if (_payload.ContainsKey("TempC_SHT"))
-            {
-                payload.TemperatureOutside = float.Parse(_payload["TempC_SHT"]);
-            }
+            var payload = model.uplink_message.decoded_payload;
+            var settings = model.uplink_message.settings.data_rate.lora;
+            var messagePayload = new UplinkMessagePayload();
 
 
-            var _message = new UplinkMessage
+            if (payload.ContainsKey("Bat_status"))
             {
-                EndDeviceEUI = _enddevice.EUI,
-                EndDevice = _enddevice,
-                Payload = payload,
+                messagePayload.Battery = float.Parse(payload["Bat_status"], NumberStyles.Any, CultureInfo.InvariantCulture);
+            }
+            if (payload.ContainsKey("BatV"))
+            {
+                messagePayload.BatteryVoltage = float.Parse(payload["BatV"], NumberStyles.Any, CultureInfo.InvariantCulture);
+            }
+            if (payload.ContainsKey("Hum_SHT"))
+            {
+                messagePayload.Humidity = float.Parse(payload["Hum_SHT"], NumberStyles.Any, CultureInfo.InvariantCulture);
+            }
+            if (payload.ContainsKey("ILL_lx"))
+            {
+                messagePayload.Light = float.Parse(payload["ILL_lx"], NumberStyles.Any, CultureInfo.InvariantCulture);
+            }
+            if (payload.ContainsKey("light"))
+            {
+                messagePayload.Light = float.Parse(payload["light"], NumberStyles.Any, CultureInfo.InvariantCulture);
+            }
+            if (payload.ContainsKey("pressure"))
+            {
+                messagePayload.Pressure = float.Parse(payload["pressure"], NumberStyles.Any, CultureInfo.InvariantCulture);
+            }
+            if (payload.ContainsKey("temperature"))
+            {
+                messagePayload.TemperatureInside = float.Parse(payload["temperature"], NumberStyles.Any, CultureInfo.InvariantCulture);
+            }
+            if (payload.ContainsKey("TempC_DS") && payload.ContainsKey("TempC_SHT"))
+            {
+                messagePayload.TemperatureInside = float.Parse(payload["TempC_SHT"], NumberStyles.Any, CultureInfo.InvariantCulture);
+                messagePayload.TemperatureOutside = float.Parse(payload["TempC_DS"], NumberStyles.Any, CultureInfo.InvariantCulture);
+            }
+            else if (payload.ContainsKey("TempC_SHT"))
+            {
+                messagePayload.TemperatureOutside = float.Parse(payload["TempC_SHT"], NumberStyles.Any, CultureInfo.InvariantCulture);
+            }
 
-               DataRate = new UplinkMessageDataRate
+            var message = new UplinkMessage
+            {
+                EndDeviceEUI = endDevice.EUI,
+                EndDevice = endDevice,
+                Payload = messagePayload,
+
+                DataRate = new UplinkMessageDataRate
                 {
-                    Bandwidth = _settings.bandwidth,
-                    SpreadingFactor = _settings.spreading_factor,
-                    CodingRate = _settings.coding_rate
+                    Bandwidth = settings.bandwidth,
+                    SpreadingFactor = settings.spreading_factor,
+                    CodingRate = settings.coding_rate
                 },
                 DateReceived = DateTime.Parse(model.uplink_message.received_at)
             };
@@ -110,21 +111,19 @@ namespace LorafyAPI.Services
             {
                 if (gateway.EUI != null)
                 {
-                    _message.GatewayEUI = gateway.EUI;
+                    message.GatewayEUI = gateway.EUI;
 
-                    _message.Gateway = gateway;
-                    if (gateway != null )
+                    message.Gateway = gateway;
+                    if (gateway != null)
                     {
                         _context.Gateways.Update(gateway);
                     }
                 }
             }
 
-            _context.EndDevices.Update(_enddevice);
-           
-            _context.UplinkMessages.Add(_message);
+            _context.EndDevices.Update(endDevice);
+            _context.UplinkMessages.Add(message);
             _context.SaveChanges();
-
         }
     }
 

@@ -1,16 +1,16 @@
 ﻿using LorafyAPI;
+using LorafyAPI.Models;
 using LorafyAPI.Services;
 using uPLibrary.Networking.M2Mqtt;
 using uPLibrary.Networking.M2Mqtt.Messages;
 
 public class MQTTBackgroundService : BackgroundService
 {
+    private readonly List<ConfiguredMqttService> _clients;
     private readonly IConfiguration _configuration;
     private readonly ILogger<MQTTBackgroundService> _logger;
-    private readonly MqttClient _client;
-
     private readonly IServiceScopeFactory _scopeFactory;
-   
+    private readonly AppDbContext _appContext;
 
     void client_MqttMsgPublishReceived(object sender, MqttMsgPublishEventArgs e)
     {
@@ -18,25 +18,48 @@ public class MQTTBackgroundService : BackgroundService
         {
             var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
             var jsonService = new JsonModelsParsingService(context);
-            var _json = System.Text.Encoding.Default.GetString(e.Message);
-            jsonService.JsonToDatabase(_json);
+            var jsonString = System.Text.Encoding.Default.GetString(e.Message);
+            jsonService.JsonToDatabase(jsonString);
         }
     }
 
-    public MQTTBackgroundService(ILogger<MQTTBackgroundService> logger, IConfiguration configuration, IServiceScopeFactory scopeFactory)
+    public MQTTBackgroundService(
+        ILogger<MQTTBackgroundService> logger,
+        IConfiguration configuration,
+        IServiceScopeFactory scopeFactory)
     {
         _logger = logger;
         _configuration = configuration;
         _scopeFactory = scopeFactory;
 
-        var host = _configuration["MQTT:host"];
-      
-        var port = int.Parse(_configuration["MQTT:port"]);
-      
-
-
-        _client = new MqttClient(host, port, false, MqttSslProtocols.None, null, null);
-    
+        _clients = new List<ConfiguredMqttService> {
+            new ConfiguredMqttService
+            {
+                Client = new MqttClient(
+                    _configuration["MQTT:host"],
+                    int.Parse(_configuration["MQTT:port"]),
+                    false,
+                    MqttSslProtocols.None,
+                    null,
+                    null
+                ),
+                Username = _configuration["MQTT:username"],
+                Password = _configuration["MQTT:password"]
+            },
+            //new ConfiguredMqttService
+            //{
+            //    Client = new MqttClient(
+            //        _configuration["MQTT2:host"],
+            //        int.Parse(_configuration["MQTT2:port"]),
+            //        false,
+            //        MqttSslProtocols.None,
+            //        null,
+            //        null
+            //    ),
+            //    Username = _configuration["MQTT2:username"],
+            //    Password = _configuration["MQTT2:password"]
+            //}
+        };
     }
 
     public override Task ExecuteTask => base.ExecuteTask;
@@ -48,31 +71,23 @@ public class MQTTBackgroundService : BackgroundService
 
     public override async Task StartAsync(CancellationToken cancellationToken)
     {
-        var clientId = Guid.NewGuid().ToString();
-    
-        var topic = _configuration["MQTT:topic"];
-        var username = _configuration["MQTT:username"];
-        var password = _configuration["MQTT:password"];
-     
-
-        _client.Connect(clientId, username, password);
-   
-        if (_client.IsConnected)
+        foreach (var configuredClient in _clients)
         {
-            _logger.LogInformation("Connected to TTN via MQTT");
+            var clientId = Guid.NewGuid().ToString();
+            configuredClient.Client.Connect(clientId, configuredClient.Username, configuredClient.Password);
 
-            _client.MqttMsgPublishReceived += client_MqttMsgPublishReceived;
-            _client.Subscribe(new string[] { topic }, new byte[] { MqttMsgBase.QOS_LEVEL_AT_MOST_ONCE });
+            if (configuredClient.Client.IsConnected)
+            {
+                _logger.LogInformation($"Connected to TTN via MQTT - {configuredClient.Username}");
 
+                configuredClient.Client.MqttMsgPublishReceived += client_MqttMsgPublishReceived;
+                configuredClient.Client.Subscribe(new string[] { "#" }, new byte[] { MqttMsgBase.QOS_LEVEL_AT_MOST_ONCE });
+            }
+            else
+            {
+                _logger.LogError("Failed to connect");
+            }
         }
-        else
-        {
-            _logger.LogError("Failed to connect");
-
-        }
-    
-
-
     }
 
     protected async override Task ExecuteAsync(CancellationToken stoppingToken)
