@@ -1,7 +1,6 @@
 ﻿using LorafyAPI.Models;
 using LorafyAPI.Services;
 using Microsoft.AspNetCore.Mvc;
-
 namespace LorafyAPI.Controllers
 {
     [ApiController]
@@ -9,7 +8,7 @@ namespace LorafyAPI.Controllers
     public class EndDeviceController : ControllerBase
     {
         private readonly EndDeviceService _service;
-
+       
         public EndDeviceController(EndDeviceService service)
         {
             _service = service;

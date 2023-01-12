@@ -4,7 +4,7 @@
     {
         public MQTTJsonSettingsDataRate data_rate { get; set; }
         public string frequency { get; set; }
-        public int? timestamp { get; set; }
+        public long? timestamp { get; set; }
         public string? time { get; set; }
     }
 }
