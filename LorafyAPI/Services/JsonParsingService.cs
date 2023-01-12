@@ -14,12 +14,17 @@ namespace LorafyAPI.Services
         public void JsonToDatabase(string _jsonString)
         {
             var model = JsonConvert.DeserializeObject<MQTTJsonMessage>(_jsonString);
-            List<Gateway> gateways = new List<Gateway>();
+            if (model == null || model.uplink_message == null)
+            {
+                // It's null for some reason, so we don't care about the message
+                return;
+            }
 
+            List<Gateway> gateways = new List<Gateway>();
             foreach (var metadata in model.uplink_message.rx_metadata)
             {
                 // Some gateways may not have ids, so skip them.
-                if (metadata.gateway_ids == null)
+                if (metadata.gateway_ids == null || metadata.gateway_ids.eui == null)
                 {
                     continue;
                 }
@@ -116,12 +121,26 @@ namespace LorafyAPI.Services
                     message.Gateway = gateway;
                     if (gateway != null)
                     {
-                        _context.Gateways.Update(gateway);
+                        if (_context.Gateways.Any(x => x.EUI == gateway.EUI))
+                        {
+                            _context.Gateways.Update(gateway);
+                        }
+                        else
+                        {
+                            _context.Gateways.Add(gateway);
+                        }
                     }
                 }
             }
 
-            _context.EndDevices.Update(endDevice);
+            if (_context.EndDevices.Any(x => x.EUI == endDevice.EUI))
+            {
+                _context.EndDevices.Update(endDevice);
+            }
+            else
+            {
+                _context.EndDevices.Add(endDevice);
+            }
             _context.UplinkMessages.Add(message);
             _context.SaveChanges();
         }
