@@ -6,7 +6,6 @@ namespace LorafyAPI.Services
     {
         private readonly AppDbContext _context;
         
-
         public EndDeviceService(AppDbContext context)
         {
             _context = context;
