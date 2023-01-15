@@ -1,10 +1,14 @@
 ﻿using LorafyAPI.Entities;
 using LorafyAPI.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Query.Internal;
 using MySqlConnector;
+using System.Data;
+using System.Data.Common;
 
 namespace LorafyAPI.Services
 {
+
     public class DataPointService
     {
         private readonly AppDbContext _context;
@@ -22,46 +26,57 @@ namespace LorafyAPI.Services
         /// <param name="to">To which timepoint</param>
         /// <param name="count">The amount of datapoints</param>
         /// <returns>A list of data points</returns>
-        public IEnumerable<EndDeviceDataPoint> GetDataPoints(string endDeviceEUI, long from, long to, int count)
+        public IEnumerable<EndDeviceDataPoint?> GetDataPoints(string endDeviceEUI, long from, long to, int count)
         {
-            var fromDate = DateTimeOffset.FromUnixTimeSeconds(from).DateTime;
-            var toDate = DateTimeOffset.FromUnixTimeSeconds(to).DateTime;
-            var interval = (to - from) / count;
-            var query =
-                from m in _context.UplinkMessages
-                where m.EndDeviceEUI == endDeviceEUI
-                    && m.DateReceived >= fromDate
-                    && m.DateReceived <= toDate
-                group m by
-                    Math.Floor((decimal)EF.Functions.DateDiffSecond(fromDate, m.DateReceived) / interval) * interval
-                    into g
-                select new
-                {
-                    AverageTemperatureInside = g.Average(m => m.Payload.TemperatureInside),
-                    AverageTemperatureOutside = g.Average(m => m.Payload.TemperatureOutside),
-                    AverageHumidity = g.Average(m => m.Payload.Humidity),
-                    AverageLight = g.Average(m => m.Payload.Light),
-                    AveragePressure = g.Average(m => m.Payload.Pressure),
-                    MessageCount = g.Count(),
-                    FirstMessageDate = g.Min(m => m.DateReceived),
-                    LastMessageDate = g.Max(m => m.DateReceived)
-                };
+            long interval = (to - from) / count;
+            using var command = _context.Database.GetDbConnection().CreateCommand();
 
-            return query.ToList().Select((x) => new EndDeviceDataPoint
+            command.CommandType = CommandType.StoredProcedure;
+            command.CommandText = "sp_GetAverageDataPoints";
+            command.Parameters.Add(new MySqlParameter("DEVICE_EUI", endDeviceEUI));
+            command.Parameters.Add(new MySqlParameter("FROM_TIMESTAMP", from));
+            command.Parameters.Add(new MySqlParameter("TO_TIMESTAMP", to));
+            command.Parameters.Add(new MySqlParameter("DATAPOINT_COUNT", count));
+
+            _context.Database.OpenConnection();
+            using var reader = command.ExecuteReader();
+            var dbResults = new List<EndDeviceDataPoint>();
+
+            while (reader.Read())
             {
-                EndDeviceEUI = endDeviceEUI,
-                FromDate = x.FirstMessageDate.ToString("yyyy-MM-ddTHH:mm:ss"),
-                ToDate = x.LastMessageDate.ToString("yyyy-MM-ddTHH:mm:ss"),
-                MessageCount = x.MessageCount,
-                Payload = new EndDeviceDataPointPayload
+                dbResults.Add(new EndDeviceDataPoint
+                {
+                    Index = (long)Math.Floor(reader.GetDouble("TimeInterval")) / interval,
+                    EndDeviceEUI = endDeviceEUI,
+                    MessageCount = reader.GetInt32("MessageCount"),
+                    Payload = new EndDeviceDataPointPayload
                     {
-                        Humidity = x.AverageHumidity,
-                        Light = x.AverageLight,
-                        Pressure = x.AveragePressure,
-                        TemperatureInside = x.AverageTemperatureInside,
-                        TemperatureOutside = x.AverageTemperatureOutside,
+                        TemperatureInside = GetPayloadField(reader, "Average_TemperatureInside"),
+                        TemperatureOutside = GetPayloadField(reader, "Average_TemperatureOutside"),
+                        Humidity = GetPayloadField(reader, "Average_Humidity"),
+                        Light = GetPayloadField(reader, "Average_Light"),
+                        Pressure = GetPayloadField(reader, "Average_Pressure")
                     }
-            });
+                });
+            }
+            _context.Database.CloseConnection();
+
+            // Insert null values for the missing payloads
+            var results = new List<EndDeviceDataPoint?>();
+            for (int i = 0; i < count; i++)
+            {
+                var dp = dbResults.Find(x => x.Index == i);
+
+                results.Add(dp ?? new EndDeviceDataPoint { Index = i, EndDeviceEUI = endDeviceEUI, MessageCount = 0 });
+            }
+
+
+            return results;
+        }
+
+        private static float? GetPayloadField(DbDataReader reader, string fieldName)
+        {
+            return !reader.IsDBNull(fieldName) ? (float)Math.Round(reader.GetFloat(fieldName), 2) : null;
         }
     }
 }
