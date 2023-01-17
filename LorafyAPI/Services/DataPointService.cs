@@ -24,11 +24,11 @@ namespace LorafyAPI.Services
         /// <param name="endDeviceEUI">The end device to get the data points for</param>
         /// <param name="from">From which timepoint</param>
         /// <param name="to">To which timepoint</param>
-        /// <param name="count">The amount of datapoints</param>
+        /// <param name="datapoints">The amount of datapoints</param>
         /// <returns>A list of data points</returns>
-        public IEnumerable<EndDeviceDataPoint?> GetDataPoints(string endDeviceEUI, long from, long to, int count)
+        public IEnumerable<EndDeviceDataPoint> GetDataPoints(string endDeviceEUI, long from, long to, int datapoints)
         {
-            long interval = (to - from) / count;
+            long interval = (to - from) / datapoints;
             using var command = _context.Database.GetDbConnection().CreateCommand();
 
             command.CommandType = CommandType.StoredProcedure;
@@ -36,7 +36,7 @@ namespace LorafyAPI.Services
             command.Parameters.Add(new MySqlParameter("DEVICE_EUI", endDeviceEUI));
             command.Parameters.Add(new MySqlParameter("FROM_TIMESTAMP", from));
             command.Parameters.Add(new MySqlParameter("TO_TIMESTAMP", to));
-            command.Parameters.Add(new MySqlParameter("DATAPOINT_COUNT", count));
+            command.Parameters.Add(new MySqlParameter("DATAPOINT_COUNT", datapoints));
 
             _context.Database.OpenConnection();
             using var reader = command.ExecuteReader();
@@ -63,7 +63,7 @@ namespace LorafyAPI.Services
 
             // Insert null values for the missing payloads
             var results = new List<EndDeviceDataPoint?>();
-            for (int i = 0; i < count; i++)
+            for (int i = 0; i < datapoints; i++)
             {
                 var dp = dbResults.Find(x => x.Index == i);
 

@@ -20,7 +20,13 @@ builder.Services.AddScoped<DataPointService>();
 
 builder.Services.AddControllers();
 builder.Services.AddMemoryCache();
-builder.Services.AddHostedService<MQTTBackgroundService>();
+
+// Start the MQTT background service in production mode
+if (builder.Environment.EnvironmentName == "Production")
+{
+    builder.Services.AddHostedService<MQTTBackgroundService>();
+}
+
 builder.Services.Configure<IpRateLimitOptions>(builder.Configuration.GetSection("IpRateLimiting"));
 builder.Services.AddSingleton<IIpPolicyStore, MemoryCacheIpPolicyStore>();
 builder.Services.AddSingleton<IRateLimitCounterStore, MemoryCacheRateLimitCounterStore>();
