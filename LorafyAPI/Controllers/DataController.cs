@@ -1,6 +1,7 @@
 ﻿using LorafyAPI.Models;
 using LorafyAPI.Services;
 using Microsoft.AspNetCore.Mvc;
+
 namespace LorafyAPI.Controllers
 {
     [ApiController]
@@ -8,40 +9,29 @@ namespace LorafyAPI.Controllers
     public class DataController : ControllerBase
     {
         private readonly DataPointService _service;
+        private readonly IConfiguration _configuration;
 
-        public DataController(DataPointService service)
+        public DataController(DataPointService service, IConfiguration configuration)
         {
             _service = service;
+            _configuration = configuration;
         }
 
         [HttpGet]
-        public IEnumerable<EndDeviceDataPoint> Get() 
+        public ActionResult<IEnumerable<EndDeviceDataPoint>> Get([FromQuery] string eui, [FromQuery] long from, [FromQuery] long to, [FromQuery] int datapoints)
         {
-            var deviceEUI = HttpContext.Request.Query["eui"];
-            if (string.IsNullOrEmpty(deviceEUI))
+            // Make sure from, to and data points are positive
+            if (from < 0 || to < 0 || datapoints < 0)
             {
-                throw new Exception("Please provide a device eui");
+                return BadRequest(new { error = "From, to and data points must be positive" });
+            }
+            var maxDataPoints = _configuration.GetValue<int>("MaxDataPoints");
+            if (maxDataPoints != 0 && datapoints > maxDataPoints)
+            {
+                return BadRequest(new { error = $"Data points must be less than {maxDataPoints}" });
             }
 
-            var from = HttpContext.Request.Query["from"];
-            if (string.IsNullOrEmpty(from))
-            {
-                throw new Exception("Please provide an time period");
-            }
-
-            var to = HttpContext.Request.Query["to"];
-            if (string.IsNullOrEmpty(to))
-            {
-                throw new Exception("Please provide an time period");
-            }
-
-            var dataPointsNum = HttpContext.Request.Query["datapoints"];
-            if (string.IsNullOrEmpty(dataPointsNum))
-            {
-                throw new Exception("Please provide an amount of datapoints");
-            }
-
-            return _service.GetDataPoints(deviceEUI, long.Parse(from), long.Parse(to), int.Parse(dataPointsNum));
+            return Ok(_service.GetDataPoints(eui, from, to, datapoints));
         }
 
     }
