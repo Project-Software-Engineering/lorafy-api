@@ -1,6 +1,6 @@
 ﻿namespace LorafyAPI.Models
 {
-    public class EndDeviceDataPointPayloadModel
+    public class EndDeviceDataPointPayload
     {
         public float? TemperatureInside { get; set; }
         public float? TemperatureOutside { get; set; }
