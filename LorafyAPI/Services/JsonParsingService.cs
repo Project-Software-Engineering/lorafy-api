@@ -7,6 +7,12 @@ namespace LorafyAPI.Services
 {
     public class JsonModelsParsingService
     {
+        // Note: This list is a hack to get the LHT-Tester to have the correct temperature data. The team did not have enough time to fix this issue properly.
+        private static List<string> INSIDE_TEMPERATURE_DEVICE_NAMES = new()
+        {
+            "lht-tester"
+        };
+
         private readonly AppDbContext _context;
 
         public JsonModelsParsingService(AppDbContext context) => _context = context;
@@ -24,7 +30,7 @@ namespace LorafyAPI.Services
             foreach (var metadata in model.uplink_message.rx_metadata)
             {
                 // Some gateways may not have ids, so skip them.
-                if (metadata.gateway_ids == null || metadata.gateway_ids.eui == null)
+                if (metadata.gateway_ids?.eui == null)
                 {
                     continue;
                 }
@@ -35,7 +41,6 @@ namespace LorafyAPI.Services
                     Name = metadata.gateway_ids.gateway_id,
                     RSSI = metadata.rssi,
                     SNR = metadata.snr,
-
                     Location = new GatewayLocation
                     {
                         Altitude = metadata.location.altitude,
@@ -57,8 +62,7 @@ namespace LorafyAPI.Services
             var payload = model.uplink_message.decoded_payload;
             var settings = model.uplink_message.settings.data_rate.lora;
             var messagePayload = new UplinkMessagePayload();
-
-
+            
             if (payload.ContainsKey("Bat_status"))
             {
                 messagePayload.Battery = float.Parse(payload["Bat_status"], NumberStyles.Any, CultureInfo.InvariantCulture);
@@ -94,7 +98,15 @@ namespace LorafyAPI.Services
             }
             else if (payload.ContainsKey("TempC_SHT"))
             {
-                messagePayload.TemperatureOutside = float.Parse(payload["TempC_SHT"], NumberStyles.Any, CultureInfo.InvariantCulture);
+                var shtTemp = float.Parse(payload["TempC_SHT"], NumberStyles.Any, CultureInfo.InvariantCulture);
+                if (INSIDE_TEMPERATURE_DEVICE_NAMES.Contains(device.device_id))
+                {
+                    messagePayload.TemperatureInside = shtTemp;
+                }
+                else
+                {
+                    messagePayload.TemperatureOutside = shtTemp;
+                }
             }
 
             var message = new UplinkMessage
@@ -102,7 +114,6 @@ namespace LorafyAPI.Services
                 EndDeviceEUI = endDevice.EUI,
                 EndDevice = endDevice,
                 Payload = messagePayload,
-
                 DataRate = new UplinkMessageDataRate
                 {
                     Bandwidth = settings.bandwidth,
@@ -117,7 +128,6 @@ namespace LorafyAPI.Services
                 if (gateway.EUI != null)
                 {
                     message.GatewayEUI = gateway.EUI;
-
                     message.Gateway = gateway;
                     if (gateway != null)
                     {

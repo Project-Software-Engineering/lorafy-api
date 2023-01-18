@@ -61,14 +61,7 @@ public class MQTTBackgroundService : BackgroundService
             }
         };
     }
-
-    public override Task ExecuteTask => base.ExecuteTask;
-
-    public override void Dispose()
-    {
-        base.Dispose();
-    }
-
+    
     public override async Task StartAsync(CancellationToken cancellationToken)
     {
         foreach (var configuredClient in _clients)
@@ -81,7 +74,7 @@ public class MQTTBackgroundService : BackgroundService
                 _logger.LogInformation($"Connected to TTN via MQTT - {configuredClient.Username}");
 
                 configuredClient.Client.MqttMsgPublishReceived += client_MqttMsgPublishReceived;
-                configuredClient.Client.Subscribe(new string[] { "#" }, new byte[] { MqttMsgBase.QOS_LEVEL_AT_MOST_ONCE });
+                configuredClient.Client.Subscribe(new [] { "#" }, new [] { MqttMsgBase.QOS_LEVEL_AT_MOST_ONCE });
             }
             else
             {
