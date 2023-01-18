@@ -22,7 +22,7 @@ builder.Services.AddControllers();
 builder.Services.AddMemoryCache();
 
 // Start the MQTT background service in production mode
-if (builder.Environment.EnvironmentName == "Production")
+if (builder.Environment.IsProduction())
 {
     builder.Services.AddHostedService<MQTTBackgroundService>();
 }
