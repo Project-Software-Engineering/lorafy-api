@@ -20,13 +20,13 @@ namespace LorafyAPI.Services
         public void JsonToDatabase(string _jsonString)
         {
             var model = JsonConvert.DeserializeObject<MQTTJsonMessage>(_jsonString);
-            if (model == null || model.uplink_message == null)
+            if (model?.uplink_message == null)
             {
                 // It's null for some reason, so we don't care about the message
                 return;
             }
 
-            List<Gateway> gateways = new List<Gateway>();
+            var gateways = new List<Gateway>();
             foreach (var metadata in model.uplink_message.rx_metadata)
             {
                 // Some gateways may not have ids, so skip them.
@@ -49,6 +49,12 @@ namespace LorafyAPI.Services
                     }
                 };
                 gateways.Add(gateway);
+            }
+
+            if (gateways.Count == 0)
+            {
+                // We require at least one gateway to be present
+                return;
             }
 
             var device = model.end_device_ids;
@@ -125,21 +131,17 @@ namespace LorafyAPI.Services
 
             foreach (var gateway in gateways)
             {
-                if (gateway.EUI != null)
+                message.GatewayEUI = gateway.EUI;
+                message.Gateway = gateway;
+                if (gateway == null) continue;
+                    
+                if (_context.Gateways.Any(x => x.EUI == gateway.EUI))
                 {
-                    message.GatewayEUI = gateway.EUI;
-                    message.Gateway = gateway;
-                    if (gateway != null)
-                    {
-                        if (_context.Gateways.Any(x => x.EUI == gateway.EUI))
-                        {
-                            _context.Gateways.Update(gateway);
-                        }
-                        else
-                        {
-                            _context.Gateways.Add(gateway);
-                        }
-                    }
+                    _context.Gateways.Update(gateway);
+                }
+                else
+                {
+                    _context.Gateways.Add(gateway);
                 }
             }
 
@@ -151,6 +153,7 @@ namespace LorafyAPI.Services
             {
                 _context.EndDevices.Add(endDevice);
             }
+            
             _context.UplinkMessages.Add(message);
             _context.SaveChanges();
         }
