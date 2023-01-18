@@ -77,7 +77,7 @@ namespace LorafyAPI.Services
             }
             if (payload.ContainsKey("ILL_lx"))
             {
-                messagePayload.Light = float.Parse(payload["ILL_lx"], NumberStyles.Any, CultureInfo.InvariantCulture);
+                messagePayload.Light = LuxToLightIntensity(float.Parse(payload["ILL_lx"], NumberStyles.Any, CultureInfo.InvariantCulture));;
             }
             if (payload.ContainsKey("light"))
             {
@@ -154,6 +154,22 @@ namespace LorafyAPI.Services
             _context.UplinkMessages.Add(message);
             _context.SaveChanges();
         }
-    }
 
+        /**
+         * This is a function given by the teachers of the project.
+         */
+        private static float LuxToLightIntensity(float lux)
+        {
+            if (lux < 123)
+            {
+                return lux;
+            }
+            var b = Math.Round(Math.Log(lux, 1.04));
+            if (b > 255)
+            {
+                return 255;
+            }
+            return (float)b;
+        }
+    }
 }
