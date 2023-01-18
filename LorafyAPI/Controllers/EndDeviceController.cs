@@ -2,6 +2,7 @@
 using LorafyAPI.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
+
 namespace LorafyAPI.Controllers
 {
     [ApiController]
@@ -12,7 +13,7 @@ namespace LorafyAPI.Controllers
         private readonly ILogger<EndDeviceController> _logger;
 
         private IMemoryCache _cache;
-        private const string CacheKey = "enddevicelist";
+        private const string CacheKey = "EndDevices";
 
         public EndDeviceController(EndDeviceService service, IMemoryCache cache, ILogger<EndDeviceController> logger)
         {
@@ -28,14 +29,13 @@ namespace LorafyAPI.Controllers
         [HttpGet]
         public IEnumerable<EndDevice> Get()
         {
-            _logger.Log(LogLevel.Information, "Trying to fetch the list of employees from cache.");
             if (_cache.TryGetValue(CacheKey, out IEnumerable<EndDevice> endDevices))
             {
-                _logger.Log(LogLevel.Information, "End Device found in cache.");
+                _logger.Log(LogLevel.Debug, "Using end devices from cache");
             }
             else
             {
-                _logger.Log(LogLevel.Information, "End Devices not in cache. Retrieving from Database.");
+                _logger.Log(LogLevel.Debug, "Saving end devices to cache");
                 endDevices = _service.GetEndDevices();
                 var cacheEntryOptions = new MemoryCacheEntryOptions()
                     .SetSlidingExpiration(TimeSpan.FromMinutes(3))
@@ -49,7 +49,5 @@ namespace LorafyAPI.Controllers
 
             return endDevices;
         }
-
-
     }
 }
