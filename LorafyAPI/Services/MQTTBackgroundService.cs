@@ -46,19 +46,19 @@ public class MQTTBackgroundService : BackgroundService
                 Username = _configuration["MQTT:username"],
                 Password = _configuration["MQTT:password"]
             },
-            //new ConfiguredMqttService
-            //{
-            //    Client = new MqttClient(
-            //        _configuration["MQTT2:host"],
-            //        int.Parse(_configuration["MQTT2:port"]),
-            //        false,
-            //        MqttSslProtocols.None,
-            //        null,
-            //        null
-            //    ),
-            //    Username = _configuration["MQTT2:username"],
-            //    Password = _configuration["MQTT2:password"]
-            //}
+            new ConfiguredMqttService
+            {
+                Client = new MqttClient(
+                    _configuration["MQTT2:host"],
+                    int.Parse(_configuration["MQTT2:port"]),
+                    false,
+                    MqttSslProtocols.None,
+                    null,
+                    null
+                ),
+                Username = _configuration["MQTT2:username"],
+                Password = _configuration["MQTT2:password"]
+            }
         };
     }
 

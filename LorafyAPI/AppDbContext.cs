@@ -9,7 +9,9 @@ namespace LorafyAPI
         public DbSet<Gateway> Gateways { get; set; }
         public DbSet<UplinkMessage> UplinkMessages { get; set; }
 
-        public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
+        public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) {
+            Database.EnsureCreated();
+        }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
